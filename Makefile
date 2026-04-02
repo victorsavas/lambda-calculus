@@ -1,7 +1,5 @@
 PROJECT_NAME = lambda-calculus
-
 CC = gcc
-CFLAGS = 
 
 ifeq ($(BUILD_MODE), DEBUG)
 	CFLAGS += -g -O0
