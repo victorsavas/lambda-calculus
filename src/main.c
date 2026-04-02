@@ -43,8 +43,8 @@ int main()
                         lambda_free(lambda);
                         continue;
                 }
-
-                reduction_wrapper(lambda, mode, 1000000);
+                
+                reduction_wrapper(lambda, mode, 100);
 
                 printf(" -> ");
                 lambda_print(lambda);

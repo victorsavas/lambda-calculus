@@ -15,8 +15,8 @@ struct ReductionParam {
         Lambda *right;
 };
 
-static Lambda *get_call_by_name(Lambda *lambda);
-static Lambda *get_call_by_value(Lambda *lambda);
+static Lambda *get_leftmost(Lambda *lambda);
+static Lambda *get_rightmost(Lambda *lambda);
 
 static void beta_reduction(Lambda *application);
 static void beta_reduction_recursive(struct ReductionParam param);
@@ -30,7 +30,7 @@ bool lambda_is_normal(Lambda *lambda)
         if (lambda == NULL)
                 return false;
 
-        Lambda *application = get_call_by_name(lambda);
+        Lambda *application = get_leftmost(lambda);
 
         return application == NULL;
 }
@@ -47,9 +47,9 @@ Lambda *lambda_reduce(Lambda *lambda, Mode mode, unsigned iterations)
                 Lambda *application;
 
                 if (mode & MODE_CALL_BY_VALUE)
-                        application = get_call_by_value(lambda);
+                        application = get_rightmost(lambda);
                 else
-                        application = get_call_by_name(lambda);
+                        application = get_leftmost(lambda);
 
                 // Normal form reached
                 if (application == NULL)
@@ -193,79 +193,88 @@ void reduce_application(struct ReductionParam param)
         beta_reduction_recursive(right_param);
 }
 
-Lambda *get_call_by_name(Lambda *lambda)
+Lambda *get_leftmost(Lambda *lambda)
 {
         if (lambda == NULL)
                 return NULL;
 
-        switch (lambda->type) {
-        case LAMBDA_BIND:
-                return get_call_by_name(lambda->bind.term);
-        
-        case LAMBDA_SHORTCUT:
-        case LAMBDA_VARIABLE:
-                return NULL;
+        Lambda *leftmost = lambda;
 
-        case LAMBDA_ABSTRACTION:
-                return get_call_by_name(lambda->abstraction.body);
-
-        case LAMBDA_APPLICATION:
-                Lambda *left = lambda->application.left;
-                Lambda *right = lambda->application.right;
-
-                if (left == NULL || right == NULL)
+        while (1) {
+                switch (leftmost->type) {
+                case LAMBDA_BIND:
+                        leftmost = leftmost->bind.term;
+                        continue;
+                
+                case LAMBDA_SHORTCUT:
+                case LAMBDA_VARIABLE:
                         return NULL;
 
-                if (left->type == LAMBDA_ABSTRACTION)
-                        return lambda;
+                case LAMBDA_ABSTRACTION:
+                        leftmost = leftmost->abstraction.body;
+                        continue;
 
-                Lambda *left_reduction = get_call_by_name(left);
+                case LAMBDA_APPLICATION:
+                        Lambda *left = leftmost->application.left;
+                        Lambda *right = leftmost->application.right;
 
-                if (left_reduction != NULL)
-                        return left_reduction;
+                        if (left == NULL || right == NULL)
+                                return NULL;
 
-                Lambda *right_reduction = get_call_by_name(right);
+                        if (left->type == LAMBDA_ABSTRACTION)
+                                return leftmost;
 
-                return right_reduction;
+                        Lambda *left_reduction = get_leftmost(left);
+
+                        if (left_reduction != NULL)
+                                return left_reduction;
+
+                        leftmost = right;
+
+                        continue;
+                }
         }
 
         return NULL;
 }
 
-Lambda *get_call_by_value(Lambda *lambda)
+Lambda *get_rightmost(Lambda *lambda)
 {
         if (lambda == NULL)
                 return NULL;
 
-        switch (lambda->type) {
-        case LAMBDA_BIND:
-                return get_call_by_value(lambda->bind.term);
+        Lambda *rightmost = lambda;
 
-        case LAMBDA_SHORTCUT:
-        case LAMBDA_VARIABLE:
-                return NULL;
+        while (1) {
+                switch (rightmost->type) {
+                case LAMBDA_BIND:
+                        rightmost = rightmost->bind.term;
+                        continue;
 
-        case LAMBDA_ABSTRACTION:
-                return get_call_by_value(lambda->abstraction.body);
-                
-        case LAMBDA_APPLICATION:
-                Lambda *left = lambda->application.left;
-                Lambda *right = lambda->application.right;
-
-                if (left == NULL || right == NULL)
+                case LAMBDA_SHORTCUT:
+                case LAMBDA_VARIABLE:
                         return NULL;
 
-                Lambda *right_reduction = get_call_by_value(right);
+                case LAMBDA_ABSTRACTION:
+                        rightmost = rightmost->abstraction.body;
+                        continue;
 
-                if (right_reduction != NULL)
-                        return right_reduction;
+                case LAMBDA_APPLICATION:
+                        Lambda *left = rightmost->application.left;
+                        Lambda *right = rightmost->application.right;
 
-                if (left->type == LAMBDA_ABSTRACTION)
-                        return lambda;
+                        if (left == NULL || right == NULL)
+                                return NULL;
 
-                Lambda *left_reduction = get_call_by_value(left);
+                        Lambda *right_reduction = get_rightmost(right);
 
-                return left_reduction;
+                        if (right_reduction != NULL)
+                                return right_reduction;
+
+                        rightmost = left;
+
+                        continue;
+                }
         }
 
         return NULL;

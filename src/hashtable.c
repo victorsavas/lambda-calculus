@@ -23,9 +23,14 @@ static void nodes_free(Node *node);
 static Node *node_tail(Node *node);
 static uint32_t hash_function(const char *key);
 
+static void load_default_shortcuts(HashTable *table);
+
 HashTable *hashtable_init()
 {
         HashTable *table = calloc(1, sizeof(*table));
+
+        load_default_shortcuts(table);
+
         return table;
 }
 
@@ -176,6 +181,93 @@ void hashtable_print(HashTable *table)
                         printf("\n");
 
                         node = node->next;
+                }
+        }
+}
+
+void load_default_shortcuts(HashTable *table)
+{
+        const char *str_shortcuts[] = {
+                // Basic combinators
+
+                "I=\\x.x",
+                "DUP=\\x.xx",
+                "OMEGA=(\\x.xx)(\\x.xx)",
+
+                "Y=\\f.(\\x.f(xx))(\\x.f(xx))",
+                "THETA=(\\x.\\y.y(xxy))(\\x.\\y.y(xxy))",
+                
+                // Booleans
+
+                "TRUE=\\f.\\x.f",
+                "FALSE=\\f.\\x.x",
+                "IF=\\p.\\a.\\b.pab",
+
+                // Logic operators
+
+                "NOT=\\p.p(\\f.\\x.x)(\\f.\\x.f)",
+                
+                "AND=\\p.\\q.pq(\\f.\\x.x)",
+                "NAND=\\p.\\q.p(q(\\f.\\x.x)(\\f.\\x.f))(\\f.\\x.f)",
+                
+                "OR=\\p.\\q.p(\\f.\\x.f)q",
+                "NOR=\\p.\\q.p(\\f.\\x.x)(q(\\f.\\x.x)(\\f.\\x.f))",
+
+                "XOR=\\p.\\q.p(q(\\f.\\x.x)(\\f.\\x.f))q",
+                "XNOR=\\p.\\q.pq(q(\\f.\\x.x)(\\f.\\x.f))",
+                
+                "IMPLY=\\p.\\q.pq(\\f.\\x.f)",
+                "NIMPLY=\\p.\\q.p(q(\\f.\\x.x)(\\f.\\x.f))(\\f.\\x.x)",
+                
+                // Arithmetic
+
+                "ADD=\\p.\\q.\\f.\\x.pf(qfx)",
+                "TIMES=\\p.\\q.\\f.p(qf)",
+
+                "DECR=\\p.(\\p.p(\\x.\\f.\\x.x)(\\f.\\x.f))p(\\f.\\x.x)((\\p."
+                     "\\f.\\x.p(\\g.\\h.h(gf))(\\u.x)(\\u.u))p)",
+                "MINUS=\\p.\\q.q(\\p.\\f.\\x.p(\\g.\\h.h(gf))(\\u.x)(\\u.u))p",
+
+                "ISZERO=\\p.p(\\x.(\\f.\\x.x))(\\f.\\x.f)",
+                "POW=\\p.\\q.q(\\x.\\f.\\x.x)(\\f.\\x.f)(\\f.\\x.fx)(qp)",
+
+                "EVEN=\\n.n(\\p.p(\\f.\\x.x)(\\f.\\x.f))(\\f.\\x.f)",
+                "ODD=\\n.n(\\p.p(\\f.\\x.x)(\\f.\\x.f))(\\f.\\x.x)",
+
+                // Quantifiers
+
+                "EXISTS=\\p.(\\f.(\\x.f(xx))(\\x.f(xx)))(\\f.\\p.\\n.(\\p.\\q."
+                       "p(\\f.\\x.f)q)(pn)(fp((\\p.\\q.\\f.\\x.pf(qfx))n(\\f."
+                       "\\x.fx))))p(\\f.\\x.x)",
+                
+                "FORALL=\\p.(\\f.(\\x.f(xx))(\\x.f(xx)))(\\f.\\p.\\n.(\\p.\\q."
+                       "pq(\\f.\\x.x))(pn)(fp((\\p.\\q.\\f.\\x.pf(qfx))n(\\f."
+                       "\\x.fx))))p(\\f.\\x.x)",
+
+                // Data structures
+
+                "PAIR=\\x.\\y.\\f.fxy",
+                "FIRST=\\p.p(\\f.\\x.f)",
+                "SECOND=\\p.p(\\f.\\x.x)",
+
+                "ROOT=\\x.\\l.\\r.\\f.\\x.fx(\\f.flr)",
+                "DATUM=\\n.n(\\f.\\x.f)",
+
+                "EMPTY=\\x.(\\f.\\x.f)",
+                "NULL=\\p.p(\\x.\\y.(\\f.\\x.x))",
+
+                "LEFT=\\n.n(\\f.\\x.x)(\\f.\\x.f)",
+                "RIGHT=\\n.n(\\f.\\x.x)(\\f.\\x.x)"
+        };
+
+        const int length = sizeof(str_shortcuts) / sizeof(str_shortcuts[0]);
+
+        for (int i = 0; i < length; i++) {
+                Lambda *shortcut = lambda_parse(str_shortcuts[i]);
+
+                if (!hashtable_insert(table, shortcut)) {
+                        printf("Error at index %d: \"%s\".\n", i, str_shortcuts[i]);
+                        lambda_free(shortcut);
                 }
         }
 }

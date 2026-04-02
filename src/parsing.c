@@ -190,6 +190,10 @@ Lambda *parse_application(struct ParseParam param)
                         printf("Syntax error. Invalid character.\n");
                         lambda_free(left);
                         return NULL;
+
+                default:
+                        right = NULL;
+                        break;
                 }
 
                 if (right == NULL) {
@@ -475,12 +479,12 @@ Lambda *generate_church_numeral(int integer)
         
         Lambda *inner_abstraction = malloc(sizeof(*inner_abstraction));
         
+        numeral->abstraction.body = inner_abstraction;
+
         if (inner_abstraction == NULL) {
                 free(numeral);
                 return NULL;
         }
-
-        numeral->abstraction.body = inner_abstraction;
 
         inner_abstraction->type = LAMBDA_ABSTRACTION;
         inner_abstraction->abstraction.binding = var_x;
@@ -491,13 +495,12 @@ Lambda *generate_church_numeral(int integer)
         if (integer == 0) {
                 right = malloc(sizeof(*right));
 
+                inner_abstraction->abstraction.body = right;
+
                 if (right == NULL) {
-                        inner_abstraction->abstraction.body = NULL;
                         lambda_free(numeral);
                         return NULL;
                 }
-        
-                inner_abstraction->abstraction.body = right;
 
                 right->type = LAMBDA_VARIABLE;
                 right->variable = var_x;
