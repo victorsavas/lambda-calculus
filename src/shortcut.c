@@ -77,7 +77,7 @@ bool replace_shortcut(struct ReplaceParam param)
         Lambda *lambda = param.lambda;
         HashTable *table = param.table;
 
-        const char *shortcut = lambda->shortcut;
+        char *shortcut = lambda->shortcut;
 
         Lambda *binding = hashtable_search(table, shortcut);
 
