@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "alpha_rename.h"
-#include "ansi_escape.h"
+#include "ansi_escapes.h"
 #include "duplicate.h"
 #include "printing.h"
 #include "reduction.h"

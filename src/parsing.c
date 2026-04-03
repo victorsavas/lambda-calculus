@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ansi_escape.h"
+#include "ansi_escapes.h"
 #include "parsing.h"
 
 typedef enum TokenType {
@@ -355,7 +355,7 @@ Lambda *parse_end(Lambda *lambda, bool parenthesis)
 Lambda *parse_right_parenthesis(Lambda *lambda, bool parenthesis)
 {
         if (!parenthesis) {
-                printf("Syntax error: unexpected parenthesis.\n");
+                printf(ANSI_RED "Syntax error: unexpected parenthesis.\n" ANSI_RESET);
                 lambda_free(lambda);
                 return NULL;
         }

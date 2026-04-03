@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "ansi_escape.h"
+#include "ansi_escapes.h"
 #include "printing.h"
 #include "hashtable.h"
 

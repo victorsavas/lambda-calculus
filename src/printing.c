@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "ansi_escape.h"
+#include "ansi_escapes.h"
 #include "printing.h"
 
 void lambda_print(Lambda *lambda, Lambda *highlight)

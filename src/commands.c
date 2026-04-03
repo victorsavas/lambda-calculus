@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ansi_escape.h"
+#include "ansi_escapes.h"
 #include "commands.h"
 
 const char space[] = " \t\n\v\f\r";
@@ -99,6 +99,7 @@ void command_help()
                 "  disable: the interpreter simply parses expressions (default);\n"
                 "  normal: the interpreter parses and then reduces expressions;\n"
                 "  verbose: the interpreter parses and reduces expressions, showing all steps.\n"
+                "\n"
                 "To change reduction mode, use \":reduce [disable | normal | verbose]\".\n"
                 "\n"
                 "By default, the interpreter has a limit of 1000 steps of reduction.\n"
@@ -143,10 +144,27 @@ void command_reduce(Mode *mode, int *iterations)
                 else if (strcmp(token, "-i") == 0) {
                         int steps = reduce_i();
 
-                        if (steps <= 0)
-                                goto abort;
+                        if (steps <= 0) {
+                                *mode = old_mode;
+                                *iterations = old_iterations;
+                                return;
+                        }
 
                         *iterations = steps;
+                } else {
+                        printf(
+                                ANSI_RED
+                                "Syntax error. Invalid parameter \"%s\".\n"
+                                ANSI_RESET
+                                ":reduce [rightmost | leftmost] [-i STEPS] [disable | normal | ver"
+                                "bose]\n"                           
+                                , token
+                        );
+                        
+                        *mode = old_mode;
+                        *iterations = old_iterations;
+
+                        return;
                 }
 
                 token = strtok(NULL, space);
@@ -155,11 +173,6 @@ void command_reduce(Mode *mode, int *iterations)
         *mode |= rightmost;
 
         return;
-
-        abort:
-
-        *mode = old_mode;
-        *iterations = old_iterations;
 }
 
 void command_remove(HashTable *table)

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ansi_escape.h"
+#include "ansi_escapes.h"
 #include "duplicate.h"
 #include "shortcut.h"
 
