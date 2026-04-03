@@ -1,12 +1,11 @@
 #include <string.h>
 
 #include "stack.h"
-#include "variable.h"
 
 #define STACK_CAP 16
 
 struct Stack {
-        struct Variable *array;
+        void **array;
         size_t top;
         size_t capacity;
 };
@@ -40,77 +39,59 @@ void stack_free(Stack *stack)
         free(stack);
 }
 
-size_t stack_push(Stack *stack, struct Variable variable)
+void *stack_push(Stack *stack, void *address)
 {
         if (stack == NULL)
-                return 0;
+                return NULL;
 
         if (stack->top + 1 == stack->capacity) {
-                struct Variable *array = realloc(stack->array, stack->capacity << 1);
+                void **array = realloc(stack->array, stack->capacity << 1);
 
                 if (array == NULL)
-                        return 0;
+                        return NULL;
                 
                 stack->array = array;
                 stack->capacity <<= 1;
         }
 
-        stack->array[stack->top++] = variable;
+        stack->array[stack->top++] = address;
 
-        return stack->top;
+        return address;
 }
 
-struct Variable stack_pop(Stack *stack)
+void *stack_pop(Stack *stack)
 {
-        struct Variable error = {
-                .letter = '\0',
-                .subscript = -1
-        };
-
         if (stack == NULL)
-                return error;
+                return NULL;
 
         if (stack->top == 0)
-                return error;
+                return NULL;
 
         return stack->array[--stack->top];
 }
 
-struct Variable stack_peek(Stack *stack)
+void *stack_peek(Stack *stack)
 {
-        struct Variable error = {
-                .letter = '\0',
-                .subscript = -1
-        };
-        
         if (stack == NULL)
-                return error;
+                return NULL;
 
         if (stack->top == 0)
-                return error;
+                return NULL;
 
         return stack->array[stack->top];
 }
 
-bool stack_empty(Stack *stack)
+void *stack_search(Stack *stack, void *address, bool compare(void *left, void *right))
 {
         if (stack == NULL)
-                return false;
+                return NULL;
 
-        return stack->top == 0;
-}
+        for (size_t i = 0; i < stack->top; i++) {
+                void *entry = stack->array[i];
 
-bool stack_search(Stack *stack, struct Variable variable)
-{
-        if (stack == NULL)
-                return false;
-
-        for (size_t i = stack->top; i-- > 0;) {
-                struct Variable var = stack->array[i];
-
-                if (variable_compare(var, variable))
-                        return true;
+                if (compare(address, entry))
+                        return entry;
         }
 
-        return false;
+        return NULL;
 }

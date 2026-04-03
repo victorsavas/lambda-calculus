@@ -51,7 +51,7 @@ void lambda_print(Lambda *lambda, Lambda *highlight)
                 bool color = highlight != NULL && lambda == highlight;
 
                 if (color)
-                        printf(ANSI_BLUE);
+                        printf(ANSI_GREEN);
 
                 if (left_parenthesis)
                         printf("(");
@@ -62,10 +62,7 @@ void lambda_print(Lambda *lambda, Lambda *highlight)
                         printf(")");
 
                 if (color)
-                        printf(ANSI_RESET);
-                
-                if (color)
-                        printf(ANSI_GREEN);
+                        printf(ANSI_RED);
 
                 if (right_parenthesis)
                         printf("(");

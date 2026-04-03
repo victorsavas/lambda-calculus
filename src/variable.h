@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stdbool.h"
+#include <stdbool.h>
 
 struct Variable {
         char letter;
@@ -8,3 +8,4 @@ struct Variable {
 };
 
 bool variable_compare(struct Variable left, struct Variable right);
+bool variable_search(void *left, void *right);

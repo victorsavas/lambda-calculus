@@ -5,6 +5,8 @@
 #include "printing.h"
 #include "variable_capture.h"
 
+#define SUBSCRIPT_LIMIT 1000
+
 struct BindsParam {
         Lambda *lambda;
         Stack *inner_binds;
@@ -50,15 +52,15 @@ void alpha_rename(Lambda *capture, Lambda *application)
                 .subscript = -1
         };
 
-        for (int i = -1; i < 1000000; i++) {
+        for (int i = -1; i < SUBSCRIPT_LIMIT; i++) {
                 new_variable.subscript = i;
 
-                if (!stack_search(right_fv, new_variable)
-                 && !stack_search(inner_binds, new_variable))
+                if (!stack_search(right_fv, &new_variable, variable_search)
+                 && !stack_search(inner_binds, &new_variable, variable_search))
                         break;
         }
 
-        if (new_variable.subscript == 1000000)
+        if (new_variable.subscript == SUBSCRIPT_LIMIT)
                 return;
 
         struct RenameParam param = {
@@ -208,10 +210,10 @@ void get_binds_variable(struct BindsParam param)
         Stack *inner_binds = param.inner_binds;
         struct Variable old_bind = param.old_bind;
 
-        struct Variable variable = lambda->variable;
+        struct Variable *variable = &lambda->variable;
 
-        if (!variable_compare(old_bind, variable)
-         && !stack_search(inner_binds, variable)) {
+        if (!variable_compare(old_bind, *variable)
+         && !stack_search(inner_binds, variable, variable_search)) {
                 stack_push(inner_binds, variable);
         }
 }
@@ -222,10 +224,10 @@ void get_binds_abstraction(struct BindsParam param)
         Stack *inner_binds = param.inner_binds;
         struct Variable old_bind = param.old_bind;
 
-        struct Variable variable = lambda->abstraction.binding;
+        struct Variable *variable = &lambda->abstraction.binding;
 
-        if (!variable_compare(old_bind, variable)
-         && !stack_search(inner_binds, variable)) {
+        if (!variable_compare(old_bind, *variable)
+         && !stack_search(inner_binds, variable, variable_search)) {
                 stack_push(inner_binds, variable);
         }
 }

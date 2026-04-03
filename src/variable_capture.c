@@ -42,7 +42,7 @@ Lambda *variable_capture(Lambda *application)
         if (right_fv == NULL)
                 return NULL;
 
-        if (stack_empty(right_fv))
+        if (stack_peek(right_fv) == NULL)
                 return NULL;
 
         Stack *left_binds = stack_init();
@@ -125,9 +125,9 @@ Lambda *abstraction_check(struct CaptureParam param)
         Stack *free_variables = param.free_variables;
         Stack *bound_variables = param.bound_variables;
 
-        struct Variable binding = lambda->abstraction.binding;
+        struct Variable *binding = &lambda->abstraction.binding;
 
-        bool capture = stack_search(free_variables, binding);
+        bool capture = stack_search(free_variables, binding, variable_search);
 
         if (capture)
                 return lambda;
@@ -210,10 +210,10 @@ void get_fv_variable(struct CaptureParam param)
         Stack *free_variables = param.free_variables;
         Stack *bound_variables = param.bound_variables;
 
-        struct Variable variable = lambda->variable;
+        struct Variable *variable = &lambda->variable;
 
-        if (!stack_search(bound_variables, variable))
-                if (!stack_search(free_variables, variable))
+        if (!stack_search(bound_variables, variable, variable_search))
+                if (!stack_search(free_variables, variable, variable_search))
                         stack_push(free_variables, variable);
 }
 
@@ -223,7 +223,7 @@ void get_fv_abstraction(struct CaptureParam param)
         Stack *free_variables = param.free_variables;
         Stack *bound_variables = param.bound_variables;
 
-        struct Variable variable = lambda->abstraction.binding;
+        struct Variable *variable = &lambda->abstraction.binding;
 
         stack_push(bound_variables, variable);
 

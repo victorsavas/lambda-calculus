@@ -74,7 +74,7 @@ Lambda *lambda_reduce(Lambda *lambda, Mode mode, unsigned iterations)
                 }
 
                 if (mode & MODE_VERBOSE) {
-                        printf(ANSI_GREY "%-5u " ANSI_RESET, i + 1);
+                        printf(ANSI_BLUE "%-5u " ANSI_RESET, i + 1);
                         lambda_print(lambda, application);
                         printf("\n");
                 } else if ((i + 1) % LONG_CYCLE == 0)
