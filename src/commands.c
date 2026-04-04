@@ -44,7 +44,7 @@ void parse_command(char *str, HashTable *table, struct Mode *mode)
                 hashtable_print(table);
         else if (strcmp(token, ":remove") == 0)
                 command_remove(table);
-        else if (strcmp(token, ":reduction") == 0)
+        else if (strcmp(token, ":reduce") == 0)
                 command_reduce(mode);
         else
                 printf(
@@ -66,7 +66,7 @@ void command_help()
                 "  :exit                                Terminates the program.\n"
                 "  :help                                Displays this message.\n"
                 "  :remove [ENTRY]                      Deletes one term from the table of entries.\n"
-                "  :reduction [OPTION]... [ENABLE]      Sets up reduction configurations.\n"
+                "  :reduce [OPTION]... [ENABLE]         Sets up reduction configurations.\n"
                 "\n"
                 "Syntax:\n"
                 "  expression -> variable\n"
@@ -99,15 +99,15 @@ void command_help()
                 "x)\".\n"
                 "\n"
                 "Reduction:\n"
-                "To enable reduction, type \":reduction on\". Likewise, type \":reduction off\" to"
+                "To enable reduction, type \":reduce on\". Likewise, type \":reduce off\" to"
                 " disable it.\n"
                 "\n"
                 "This interpreter supports two reduction strategies:\n"
-                "  Normal order (:reduction -s normal)\n"
-                "  Applicative order (:reduction -s applicative)\n"
+                "  Normal order (:reduce -s normal)\n"
+                "  Applicative order (:reduce -s applicative)\n"
                 "\n"
-                "To specify recursion max depth, write \":reduction -i [DEPTH]. The default depth is 1000.\n"
-                "To print each reduction step, write \":reduction -v\".\n"
+                "To specify recursion max depth, write \":reduce -i [DEPTH]. The default depth is 1000.\n"
+                "To print each reduction step, write \":reduce -v\".\n"
         );
 }
 
@@ -123,7 +123,7 @@ void command_reduce(struct Mode *mode)
 
         if (token == NULL) {
                 printf(
-                        ":reduction [-s ORDER] [-i STEPS] [-v] ENABLE\n"
+                        ":reduce [-s ORDER] [-i STEPS] [-v] ENABLE\n"
                         "ORDER: normal, applicative\n"
                         "STEPS: <integer>\n"
                         "ENABLE: enabled, disabled\n"
