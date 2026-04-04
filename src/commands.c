@@ -206,7 +206,7 @@ void reduce_s(struct Mode *mode, bool strat_parse)
                         ANSI_RED
                         "Syntax error. Expected argument after -s flag.\n"
                         ANSI_RESET
-                        ":reduce -s [normal | applicative]"
+                        ":reduce -s [normal | applicative]\n"
                 );
 
                 mode->exit = true;
@@ -223,7 +223,7 @@ void reduce_s(struct Mode *mode, bool strat_parse)
                 ANSI_RED
                 "Syntax error. Undefined reduction strategy \"-s %s\".\n"
                 ANSI_RESET
-                ":reduce -s [normal | applicative]",
+                ":reduce -s [normal | applicative]\n",
                 token
         );
 
@@ -312,7 +312,7 @@ void reduce_enable(struct Mode *mode, char *token, bool enable_parse)
                         ANSI_RED
                         "Error. Invalid token \"%s\".\n"
                         ANSI_RESET
-                        ":reduce [OPTION]... [on | off]",
+                        ":reduce [OPTION]... [on | off]\n",
                         token
                 );
 
@@ -339,7 +339,7 @@ void reduce_enable(struct Mode *mode, char *token, bool enable_parse)
                 ANSI_RED
                 "Syntax error. Invalid token \"%s\".\n"
                 ANSI_RESET
-                ":reduce [OPTION]... [on | off]",
+                ":reduce [OPTION]... [on | off]\n",
                 token
         );
 

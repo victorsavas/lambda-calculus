@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#define SUBSCRIPT_LIMIT 1000000
+
 struct Variable {
         char letter;
         int subscript;

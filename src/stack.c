@@ -78,7 +78,7 @@ const void *stack_peek(Stack *stack)
         if (stack->top == 0)
                 return NULL;
 
-        return stack->array[stack->top];
+        return stack->array[stack->top - 1];
 }
 
 const void *stack_search(Stack *stack, const void *address,
@@ -100,4 +100,9 @@ const void *stack_search(Stack *stack, const void *address,
 void stack_clear(Stack *stack)
 {
         stack->top = 0;
+}
+
+size_t stack_height(Stack *stack)
+{
+        return stack->top;
 }

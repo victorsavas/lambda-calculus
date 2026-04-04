@@ -208,7 +208,7 @@ void hashtable_print(HashTable *table)
         qsort(array, entries_count, sizeof(*array), compare_entries);
 
         for (i = 0; i < entries_count; i++) {
-                printf(ANSI_BLUE "%-4ldd " ANSI_RESET, i + 1);
+                printf(ANSI_BLUE "%-4ld " ANSI_RESET, i + 1);
                 
                 char *shortcut = array[i]->shortcut;
                 Lambda *term = array[i]->term;

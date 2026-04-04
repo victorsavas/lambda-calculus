@@ -10,11 +10,8 @@
 #include "reduction.h"
 #include "stack.h"
 #include "variable.h"
-#include "variable_capture.h"
 
 #define LONG_CYCLE 10000
-
-static bool is_redex(Lambda *lambda);
 
 static Lambda *get_redex_normal(Lambda *lambda);
 static Lambda *get_redex_applicative(Lambda *lambda);
@@ -77,16 +74,16 @@ Lambda *lambda_reduce(Lambda *lambda, struct Mode mode)
                         printf(ANSI_BLUE "%-5u " ANSI_RESET, i + 1);
                         lambda_print(lambda, redex);
                         printf("\n");
+                        
+                        // getchar();
                 } else if ((i + 1) % LONG_CYCLE == 0) {
                         printf(".\n");
                 }
 
-                Lambda *capture = variable_capture(redex);
+                bool rename = alpha_rename(redex);
 
-                if (capture == NULL)
+                if (!rename)
                         beta_reduction(redex);
-                else
-                        alpha_rename(capture, redex);
         }
 
         lambda_print(lambda, NULL);
@@ -297,20 +294,4 @@ Lambda *get_redex_applicative(Lambda *lambda)
         stack_free(stack);
 
         return redex;
-}
-
-bool is_redex(Lambda *lambda)
-{
-        if (lambda == NULL)
-                return false;
-
-        if (lambda->type != LAMBDA_APPLICATION)
-                return false;
-
-        Lambda *left = lambda->left;
-
-        if (left == NULL)
-                return false;
-
-        return left->type == LAMBDA_ABSTRACTION;
 }

@@ -3,6 +3,7 @@ CC = gcc
 
 ifeq ($(BUILD_MODE), DEBUG)
 	CFLAGS += -fsanitize=address -g -fno-omit-frame-pointer -O0
+# 	CFLAGS += -g -O0
 else
 	CFLAGS += -s -O1
 endif

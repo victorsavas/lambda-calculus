@@ -1,255 +1,376 @@
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "alpha_rename.h"
+#include "duplicate.h"
 #include "stack.h"
-#include "printing.h"
-#include "variable_capture.h"
 
-#define SUBSCRIPT_LIMIT 1000
+static bool capture_check(Lambda *redex, Stack *right_fv);
+static void rename_abstraction(Lambda *abst, Stack *right_fv, Stack *binds);
 
-struct BindsParam {
-        Lambda *lambda;
-        Stack *inner_binds;
-        struct Variable old_bind;
-};
+static Stack *get_inner_binds(Lambda *abst);
+static const size_t *push_height(Stack *stack, size_t i);
 
-static Stack *get_inner_binds(Lambda *lambda);
-
-static void get_binds_recursive(struct BindsParam param);
-static void get_binds_variable(struct BindsParam param);
-static void get_binds_abstraction(struct BindsParam param);
-static void get_binds_application(struct BindsParam param);
-
-struct RenameParam {
-        Lambda *lambda;
-        struct Variable old_bind;
-        struct Variable new_bind;
-};
-
-static void rename_recursive(struct RenameParam param);
-
-static void rename_variable(struct RenameParam param);
-static void rename_abstraction(struct RenameParam param);
-static void rename_application(struct RenameParam param);
-
-void alpha_rename(Lambda *capture, Lambda *redex)
+bool alpha_rename(Lambda *redex)
 {
-        if (capture == NULL || redex == NULL)
-                return;
+        if (!is_redex(redex))
+                return NULL;
 
-        Stack *right_fv = get_free_variables(redex->right);
-        Stack *inner_binds = get_inner_binds(capture);
+        Lambda *right = redex->right;
 
-        if (right_fv == NULL || inner_binds == NULL) {
+        Stack *right_fv = get_free_variables(right);
+
+        if (right_fv == NULL
+         || stack_peek(right_fv) == NULL) {
                 stack_free(right_fv);
-                stack_free(inner_binds);
+                return NULL;
         }
 
-        struct Variable old_variable = capture->variable;
+        bool rename = capture_check(redex, right_fv);
 
-        struct Variable new_variable = {
-                .letter = old_variable.letter,
-                .subscript = -1
-        };
+        stack_free(right_fv);
+
+        return rename;
+}
+
+bool capture_check(Lambda *redex, Stack *right_fv)
+{
+        Stack *stack = stack_init();
+        Stack *height = stack_init();
+        Stack *binds = stack_init();
+
+        if (stack == NULL
+         || height == NULL
+         || binds == NULL) {
+                stack_free(stack);
+                stack_free(height);
+                stack_free(binds);
+
+                return false;
+        }
+
+        bool rename = false;
+        Lambda *top = redex->left;
+
+        while (top != NULL) {
+                if (top->type == LAMBDA_APPLICATION) {
+                        stack_push(stack, top->right);
+                        top = top->left;
+
+                        continue;
+                }
+
+                size_t h = stack_height(stack);
+                size_t *pop_h = (size_t *)stack_peek(height);
+
+                if (pop_h != NULL && h <= *pop_h) {
+                        stack_pop(binds);
+                        stack_pop(height);
+                        free(pop_h);
+                }
+
+                switch (top->type) {
+                case LAMBDA_ENTRY:
+                        stack_push(stack, top->term);
+                        break;
+
+                case LAMBDA_SHORTCUT:
+                        break;
+
+                case LAMBDA_VARIABLE:
+                        break;
+
+                case LAMBDA_ABSTRACTION:
+                        struct Variable *var = &top->variable;
+                        
+                        bool capture = stack_search(right_fv, var, variable_search);
+
+                        if (capture) {
+                                rename_abstraction(top, right_fv, binds);
+                                rename = true;
+                        }
+
+                        stack_push(stack, top->body);
+                        push_height(height, h);
+                        stack_push(binds, var);
+
+                        break;
+                        
+                case LAMBDA_NUMERAL:
+                        break;
+                }
+
+                top = (Lambda *)stack_pop(stack);
+        }
+
+        size_t *p;
+
+        do {
+                p = (size_t *)stack_pop(height);
+                free(p);
+        } while (p != NULL);
+        
+        stack_free(stack);
+        stack_free(height);
+        stack_free(binds);
+
+        return rename;
+}
+
+void rename_abstraction(Lambda *abst, Stack *right_fv, Stack *binds)
+{
+        if (abst == NULL
+         || abst->type != LAMBDA_ABSTRACTION)
+                return;
+
+        struct Variable *old_bind = &abst->variable;
+        Lambda *body = abst->body;
+
+        Stack *stack = stack_init();
+        Stack *inner_binds = get_inner_binds(abst);
+
+        if (stack == NULL
+         || inner_binds == NULL) {
+                stack_free(stack);
+                stack_free(inner_binds);
+                return;
+        }
+
+        struct Variable new_bind = *old_bind;
 
         for (int i = -1; i < SUBSCRIPT_LIMIT; i++) {
-                new_variable.subscript = i;
+                new_bind.subscript = i;
 
-                if (!stack_search(right_fv, &new_variable, variable_search)
-                 && !stack_search(inner_binds, &new_variable, variable_search))
+                if (!stack_search(right_fv, &new_bind, variable_search)
+                 && !stack_search(inner_binds, &new_bind, variable_search)
+                 && !stack_search(binds, &new_bind, variable_search))
                         break;
         }
 
-        if (new_variable.subscript == SUBSCRIPT_LIMIT)
-                return;
-
-        struct RenameParam param = {
-                .lambda = capture->body,
-                .old_bind = old_variable,
-                .new_bind = new_variable
-        };
-
-        rename_recursive(param);
-
-        capture->variable = new_variable;
-
-        stack_free(right_fv);
         stack_free(inner_binds);
-}
 
-void rename_recursive(struct RenameParam param)
-{
-        Lambda *lambda = param.lambda;
-
-        if (lambda == NULL)
+        if (new_bind.subscript == SUBSCRIPT_LIMIT) {
+                stack_free(stack);
                 return;
-
-        switch (lambda->type) {
-        case LAMBDA_ENTRY:
-                break;
-        
-        case LAMBDA_SHORTCUT:
-                break;
-        
-        case LAMBDA_VARIABLE:
-                rename_variable(param);
-                break;
-
-        case LAMBDA_ABSTRACTION:
-                rename_abstraction(param);
-                break;
-
-        case LAMBDA_APPLICATION:
-                rename_application(param);
-                break;
         }
+
+        Lambda *top = abst->body;
+
+        while (top != NULL) {
+                if (top->type == LAMBDA_APPLICATION) {
+                        stack_push(stack, top->right);
+                        top = top->left;
+
+                        continue;
+                }
+
+                switch (top->type) {
+                case LAMBDA_ENTRY:
+                        // illegal
+                        break;
+
+                case LAMBDA_SHORTCUT:
+                        break;
+
+                case LAMBDA_VARIABLE:
+                        if (variable_compare(top->variable, *old_bind))
+                                top->variable = new_bind;
+                        
+                        break;
+
+                case LAMBDA_ABSTRACTION:
+                        if (!variable_compare(top->variable, *old_bind))
+                                stack_push(stack, top->body);
+
+                        break;
+
+                case LAMBDA_NUMERAL:
+                        break;
+                }
+
+                top = (Lambda *)stack_pop(stack);
+        }
+
+        abst->variable = new_bind;
+
+        stack_free(stack);
 }
 
-Stack *get_inner_binds(Lambda *lambda)
+Stack *get_inner_binds(Lambda *abst)
 {
-        if (lambda == NULL)
+        if (abst == NULL
+         || abst->type != LAMBDA_ABSTRACTION)
                 return NULL;
 
-        if (lambda->type != LAMBDA_ABSTRACTION)
-                return NULL;
+        struct Variable old_bind = abst->variable;
 
+        Stack *stack = stack_init();
         Stack *inner_binds = stack_init();
 
-        if (inner_binds == NULL)
-                return NULL;
+        Lambda *top = abst->body;
 
-        struct BindsParam param = {
-                .lambda = lambda->body,
-                .inner_binds = inner_binds,
-                .old_bind = lambda->variable
-        };
+        while (top != NULL) {
+                if (top->type == LAMBDA_APPLICATION) {
+                        stack_push(stack, top->right);
+                        top = top->left;
 
-        get_binds_recursive(param);
+                        continue;
+                }
+
+                switch (top->type) {
+                case LAMBDA_ENTRY:
+                        // illegal
+                        break;
+
+                case LAMBDA_SHORTCUT:
+                        break;
+
+                case LAMBDA_VARIABLE:
+                        struct Variable *var = &top->variable;
+
+                        if (!variable_compare(old_bind, *var)
+                         && !stack_search(inner_binds, var, variable_search))
+                                stack_push(inner_binds, var);
+
+                        break;
+
+                case LAMBDA_ABSTRACTION:
+                        var = &top->variable;
+
+                        if (!variable_compare(old_bind, *var)
+                         && !stack_search(inner_binds, var, variable_search))
+                                stack_push(inner_binds, var);
+
+                        break;
+
+                case LAMBDA_NUMERAL:
+                        break;
+                }
+
+                top = (Lambda *)stack_pop(stack);
+        }
+        
+        stack_free(stack);
 
         return inner_binds;
 }
 
-void rename_variable(struct RenameParam param)
+Stack *get_free_variables(Lambda *lambda)
 {
-        Lambda *lambda = param.lambda;
-        struct Variable old_bind = param.old_bind;
-        struct Variable new_bind = param.new_bind;
+        if (lambda == NULL)
+                return NULL;
 
-        if (variable_compare(lambda->variable, old_bind))
-                lambda->variable = new_bind;
-}
+        Stack *stack = stack_init();
+        Stack *height = stack_init();
 
-void rename_abstraction(struct RenameParam param)
-{
-        Lambda *lambda = param.lambda;
-        struct Variable old_bind = param.old_bind;
-        struct Variable new_bind = param.new_bind;
+        Stack *free_variables = stack_init();
+        Stack *binds = stack_init();
 
-        if (!variable_compare(lambda->variable, old_bind)) {
-                struct RenameParam param = {
-                        .lambda = lambda->body,
-                        .old_bind = old_bind,
-                        .new_bind = new_bind
-                };
+        if (stack == NULL
+         || height == NULL
+         || free_variables == NULL
+         || binds == NULL) {
+                stack_free(stack);
+                stack_free(height);
+                stack_free(free_variables);
+                stack_free(binds);
 
-                rename_recursive(param);
+                return NULL;
         }
-}
-
-void rename_application(struct RenameParam param)
-{
-        Lambda *lambda = param.lambda;
-        struct Variable old_bind = param.old_bind;
-        struct Variable new_bind = param.new_bind;
-
-        struct RenameParam left_param = {
-                .lambda = lambda->left,
-                .old_bind = old_bind,
-                .new_bind = new_bind
-        };
-
-        struct RenameParam right_param = {
-                .lambda = lambda->right,
-                .old_bind = old_bind,
-                .new_bind = new_bind
-        };
-
-        rename_recursive(left_param);
-        rename_recursive(right_param);
-
-}
-
-void get_binds_recursive(struct BindsParam param)
-{
-        Lambda *lambda = param.lambda;
-
-        switch (lambda->type) {
-        case LAMBDA_SHORTCUT:
-                break;
-
-        case LAMBDA_ENTRY:
-                break;
-
-        case LAMBDA_VARIABLE:
-                get_binds_variable(param);
-                break;
-
-        case LAMBDA_ABSTRACTION:
-                get_binds_abstraction(param);
-                break;
-
-        case LAMBDA_APPLICATION:
-                get_binds_application(param);
-                break;
-        }
-}
-
-void get_binds_variable(struct BindsParam param)
-{
-        Lambda *lambda = param.lambda;
-        Stack *inner_binds = param.inner_binds;
-        struct Variable old_bind = param.old_bind;
-
-        struct Variable *variable = &lambda->variable;
-
-        if (!variable_compare(old_bind, *variable)
-         && !stack_search(inner_binds, variable, variable_search)) {
-                stack_push(inner_binds, variable);
-        }
-}
-
-void get_binds_abstraction(struct BindsParam param)
-{
-        Lambda *lambda = param.lambda;
-        Stack *inner_binds = param.inner_binds;
-        struct Variable old_bind = param.old_bind;
-
-        struct Variable *variable = &lambda->variable;
-
-        if (!variable_compare(old_bind, *variable)
-         && !stack_search(inner_binds, variable, variable_search)) {
-                stack_push(inner_binds, variable);
-        }
-}
-
-void get_binds_application(struct BindsParam param)
-{
-        Lambda *lambda = param.lambda;
-        Stack *inner_binds = param.inner_binds;
-        struct Variable old_bind = param.old_bind;
         
-        struct BindsParam left_param = {
-                .lambda = lambda->left,
-                .inner_binds = inner_binds,
-                .old_bind = old_bind
-        };
+        Lambda *top = lambda;
 
-        struct BindsParam right_param = {
-                .lambda = lambda->right,
-                .inner_binds = inner_binds,
-                .old_bind = old_bind
-        };
+        while (top != NULL) {
+                if (top->type == LAMBDA_APPLICATION) {
+                        stack_push(stack, top->right);
+                        top = top->left;
 
-        get_binds_recursive(left_param);
-        get_binds_recursive(right_param);
+                        continue;
+                }
+
+                size_t h = stack_height(stack);
+                size_t *pop_h = (size_t *)stack_peek(height);
+
+                if (pop_h != NULL && h < *pop_h) {
+                        stack_pop(binds);
+                        stack_pop(height);
+                        free(pop_h);
+                }
+
+                switch (top->type) {
+                case LAMBDA_ENTRY:
+                        stack_push(stack, top->term);
+                        break;
+
+                case LAMBDA_SHORTCUT:
+                        break;
+
+                case LAMBDA_VARIABLE:
+                        struct Variable *var = &top->variable;
+
+                        if (stack_search(binds, var, variable_search))
+                                break;
+
+                        if (!stack_search(free_variables, var, variable_search))
+                                stack_push(free_variables, var);
+                        
+                        break;
+
+                case LAMBDA_ABSTRACTION:
+                        stack_push(stack, top->body);
+
+                        stack_push(binds, &top->variable);
+                        push_height(height, h);
+
+                        break;
+
+                case LAMBDA_NUMERAL:
+                        break;
+                }
+
+                top = (Lambda *)stack_pop(stack);
+        }
+
+        stack_free(stack);
+        
+        size_t *p;
+
+        do {
+                p = (size_t *)stack_pop(height);
+                free(p);
+        } while (p != NULL);
+        
+        stack_free(height);
+        stack_free(binds);
+
+        return free_variables;
+}
+
+const size_t *push_height(Stack *stack, size_t height)
+{
+        if (stack == NULL)
+                return NULL;
+
+        size_t *mem = malloc(sizeof(*mem));
+
+        *mem = height;
+
+        return stack_push(stack, mem);
+}
+
+bool is_redex(Lambda *lambda)
+{
+        if (lambda == NULL)
+                return false;
+
+        if (lambda->type != LAMBDA_APPLICATION)
+                return false;
+
+        Lambda *left = lambda->left;
+
+        if (left == NULL)
+                return false;
+
+        return left->type == LAMBDA_ABSTRACTION;
 }
