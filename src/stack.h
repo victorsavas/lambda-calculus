@@ -13,3 +13,4 @@ const void *stack_pop(Stack *stack);
 const void *stack_peek(Stack *stack);
 const void *stack_search(Stack *stack, const void *address,
                          bool compare(const void *left, const void *right));
+void stack_clear(Stack *stack);

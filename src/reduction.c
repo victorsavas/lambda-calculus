@@ -17,9 +17,7 @@
 static bool is_redex(Lambda *lambda);
 
 static Lambda *get_redex_normal(Lambda *lambda);
-// static Lambda *get_redex_applicative(Lambda *lambda);
-// static Lambda *get_redex_cb_name(Lambda *lambda);
-// static Lambda *get_redex_cb_value(Lambda *lambda);
+static Lambda *get_redex_applicative(Lambda *lambda);
 
 static void beta_reduction(Lambda *redex);
 
@@ -60,7 +58,6 @@ Lambda *lambda_reduce(Lambda *lambda, struct Mode mode)
         for (i = 0; i < mode.depth; i++) {
                 Lambda *redex = NULL;
 
-                /*
                 switch (mode.strat) {
                 case STRAT_NORMAL:
                         redex = get_redex_normal(lambda);
@@ -69,19 +66,7 @@ Lambda *lambda_reduce(Lambda *lambda, struct Mode mode)
                 case STRAT_APPLICATIVE:
                         redex = get_redex_applicative(lambda);
                         break;
-
-                case STRAT_CALL_BY_NAME:
-                        redex = get_redex_cb_name(lambda);
-                        break;
-
-                case STRAT_CALL_BY_VALUE:
-                        redex = get_redex_cb_value(lambda);
-                        break;
                 }
-
-                */
-
-                redex = get_redex_normal(lambda);
 
                 if (redex == NULL) {
                         normal_form = true;
@@ -249,6 +234,69 @@ Lambda *get_redex_normal(Lambda *lambda)
         stack_free(stack);
 
         return NULL;
+}
+
+Lambda *get_redex_applicative(Lambda *lambda)
+{
+        if (lambda == NULL)
+                return NULL;
+
+        Stack *stack = stack_init();
+
+        Lambda *redex = NULL;
+
+        if (stack == NULL)
+                return NULL;
+
+        Lambda *top = lambda;
+
+        while (top != NULL) {
+                switch (top->type) {
+                case LAMBDA_ENTRY:
+                        Lambda *entry = top->term;
+                        stack_push(stack, entry);
+
+                        break;
+
+                case LAMBDA_SHORTCUT:
+                        break;
+
+                case LAMBDA_VARIABLE:
+                        break;
+                        
+                case LAMBDA_ABSTRACTION:
+                        Lambda *body = top->body;
+                        stack_push(stack, body);
+
+                        break;
+
+                case LAMBDA_APPLICATION:
+                        if (is_redex(top)) {
+                                redex = top;
+
+                                stack_clear(stack);
+
+                                top = redex;
+                        }
+
+                        Lambda *right = top->right;
+                        Lambda *left = top->left;
+
+                        stack_push(stack, right);
+                        stack_push(stack, left);
+
+                        break;
+
+                case LAMBDA_NUMERAL:
+                        break;
+                }
+
+                top = (Lambda *)stack_pop(stack);
+        }
+
+        stack_free(stack);
+
+        return redex;
 }
 
 bool is_redex(Lambda *lambda)

@@ -102,11 +102,9 @@ void command_help()
                 "To enable reduction, type \":reduction on\". Likewise, type \":reduction off\" to"
                 " disable it.\n"
                 "\n"
-                "This interpreter supports four reduction strategies:\n"
+                "This interpreter supports two reduction strategies:\n"
                 "  Normal order (:reduction -s normal)\n"
                 "  Applicative order (:reduction -s applicative)\n"
-                "  Call by value (:reduction -s call-by-value)\n"
-                "  Call by name (:reduction -s call-by-name)\n"
                 "\n"
                 "To specify recursion max depth, write \":reduction -i [DEPTH]. The default depth is 1000.\n"
                 "To print each reduction step, write \":reduction -v\".\n"
@@ -126,7 +124,7 @@ void command_reduce(struct Mode *mode)
         if (token == NULL) {
                 printf(
                         ":reduction [-s ORDER] [-i STEPS] [-v] ENABLE\n"
-                        "ORDER: normal, applicative, call-by-value or call-by-name\n"
+                        "ORDER: normal, applicative\n"
                         "STEPS: <integer>\n"
                         "ENABLE: enabled, disabled\n"
                 );
@@ -194,15 +192,11 @@ void reduce_s(struct Mode *mode, bool strat_parse)
         const char *strat[] = {
                 "normal",
                 "applicative",
-                "call-by-value",
-                "call-by-name"
         };
 
         const RedStrat strat_code[] ={
                 STRAT_NORMAL,
                 STRAT_APPLICATIVE,
-                STRAT_CALL_BY_VALUE,
-                STRAT_CALL_BY_NAME
         };
 
         char *token = strtok(NULL, space);
@@ -212,13 +206,14 @@ void reduce_s(struct Mode *mode, bool strat_parse)
                         ANSI_RED
                         "Syntax error. Expected argument after -s flag.\n"
                         ANSI_RESET
+                        ":reduce -s [normal | applicative]"
                 );
 
                 mode->exit = true;
                 return;
         }
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 2; i++)
                 if (strcmp(token, strat[i]) == 0) {
                         mode->strat = strat_code[i];
                         return;
@@ -227,7 +222,8 @@ void reduce_s(struct Mode *mode, bool strat_parse)
         printf(
                 ANSI_RED
                 "Syntax error. Undefined reduction strategy \"-s %s\".\n"
-                ANSI_RESET,
+                ANSI_RESET
+                ":reduce -s [normal | applicative]",
                 token
         );
 
@@ -315,7 +311,8 @@ void reduce_enable(struct Mode *mode, char *token, bool enable_parse)
                 printf(
                         ANSI_RED
                         "Error. Invalid token \"%s\".\n"
-                        ANSI_RESET,
+                        ANSI_RESET
+                        ":reduce [OPTION]... [on | off]",
                         token
                 );
 
@@ -341,7 +338,8 @@ void reduce_enable(struct Mode *mode, char *token, bool enable_parse)
         printf(
                 ANSI_RED
                 "Syntax error. Invalid token \"%s\".\n"
-                ANSI_RESET,
+                ANSI_RESET
+                ":reduce [OPTION]... [on | off]",
                 token
         );
 

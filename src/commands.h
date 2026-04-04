@@ -5,8 +5,6 @@
 typedef enum RedStrat {
         STRAT_NORMAL,
         STRAT_APPLICATIVE,
-        STRAT_CALL_BY_NAME,
-        STRAT_CALL_BY_VALUE
 } RedStrat;
 
 struct Mode {

@@ -96,3 +96,8 @@ const void *stack_search(Stack *stack, const void *address,
 
         return NULL;
 }
+
+void stack_clear(Stack *stack)
+{
+        stack->top = 0;
+}
