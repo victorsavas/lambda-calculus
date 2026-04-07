@@ -282,13 +282,6 @@ Stack *get_free_variables(Lambda *lambda)
         Lambda *top = lambda;
 
         while (top != NULL) {
-                if (top->type == LAMBDA_APPLICATION) {
-                        stack_push(stack, top->right);
-                        top = top->left;
-
-                        continue;
-                }
-
                 size_t h = stack_height(stack);
                 size_t *pop_h = (size_t *)stack_peek(height);
 
@@ -325,6 +318,12 @@ Stack *get_free_variables(Lambda *lambda)
                         stack_push(binds, bind);
                         push_height(height, h);
 
+                        break;
+
+                case LAMBDA_APPLICATION:
+                        stack_push(stack, top->right);
+                        top = top->left;
+                        
                         break;
 
                 case LAMBDA_NUMERAL:

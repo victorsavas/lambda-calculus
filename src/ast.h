@@ -9,7 +9,7 @@ typedef enum LambdaExprType {
         LAMBDA_SHORTCUT,
         LAMBDA_ENTRY,
         LAMBDA_NUMERAL,
-        LAMBDA_INDIRECTION
+        // LAMBDA_INDIRECTION
 } LambdaExprType;
 
 typedef struct Lambda Lambda;
