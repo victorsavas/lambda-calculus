@@ -8,7 +8,7 @@
 #include "printing.h"
 #include "hashtable.h"
 
-#define BUCKET_COUNT 256
+#define BUCKET_COUNT 257
 
 typedef struct Node Node;
 
@@ -76,25 +76,10 @@ Lambda *hashtable_insert(HashTable *table, Lambda *lambda)
                 return lambda;
         }
         
-        Node *node = bucket;
+        Node *node = malloc(sizeof(*node));
 
-        while (node != NULL) {
-                const char *node_entry = node->value->ent.entry;
-
-                if (strcmp(entry, node_entry) == 0) {
-                        lambda_free(node->value);
-                        node->value = lambda;
-                        return lambda;
-                }
-                node = node->next;
-        }
-        
-        node = malloc(sizeof(*node));
-
-        if (node == NULL) {
-                lambda_free(lambda);
+        if (node == NULL)
                 return NULL;
-        }
 
         node->value = lambda;
         node->next = bucket->next;
