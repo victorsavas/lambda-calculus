@@ -34,10 +34,10 @@ Lambda *lambda_duplicate(const Lambda *lambda)
                 case LAMBDA_ENTRY:
                         right = calloc(1, sizeof(*right));
 
-                        dest_top->entry = my_strdup(src_top->entry);
-                        dest_top->expression = right;
+                        dest_top->ent.entry = my_strdup(src_top->ent.entry);
+                        dest_top->ent.expression = right;
 
-                        stack_push(src_stack, src_top->expression);
+                        stack_push(src_stack, src_top->ent.expression);
                         stack_push(dest_stack, right);
 
                         break;
@@ -53,10 +53,10 @@ Lambda *lambda_duplicate(const Lambda *lambda)
                 case LAMBDA_ABSTRACTION:
                         right = calloc(1, sizeof(*right));
 
-                        dest_top->bind = src_top->bind;
-                        dest_top->body = right;
+                        dest_top->abs.bind = src_top->abs.bind;
+                        dest_top->abs.body = right;
 
-                        stack_push(src_stack, src_top->body);
+                        stack_push(src_stack, src_top->abs.body);
                         stack_push(dest_stack, right);
 
                         break;
@@ -65,11 +65,11 @@ Lambda *lambda_duplicate(const Lambda *lambda)
                         right = malloc(sizeof(*right));
                         left = malloc(sizeof(*left));
 
-                        dest_top->right = right;
-                        dest_top->left = left;
+                        dest_top->app.right = right;
+                        dest_top->app.left = left;
 
-                        stack_push(src_stack, src_top->right);
-                        stack_push(src_stack, src_top->left);
+                        stack_push(src_stack, src_top->app.right);
+                        stack_push(src_stack, src_top->app.left);
 
                         stack_push(dest_stack, right);
                         stack_push(dest_stack, left);

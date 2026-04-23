@@ -64,7 +64,7 @@ Lambda *hashtable_insert(HashTable *table, Lambda *lambda)
         if (lambda->type != LAMBDA_ENTRY)
                 return NULL;
 
-        const char *entry = lambda->entry;
+        const char *entry = lambda->ent.entry;
         uint32_t hash = hash_function(entry);
         size_t index = hash % BUCKET_COUNT;
 
@@ -79,7 +79,7 @@ Lambda *hashtable_insert(HashTable *table, Lambda *lambda)
         Node *node = bucket;
 
         while (node != NULL) {
-                const char *node_entry = node->value->entry;
+                const char *node_entry = node->value->ent.entry;
 
                 if (strcmp(entry, node_entry) == 0) {
                         lambda_free(node->value);
@@ -119,7 +119,7 @@ Lambda *hashtable_search(HashTable *table, const char *key)
         if (node->value == NULL)
                 return NULL;
 
-        while (strcmp(node->value->entry, key) != 0) {
+        while (strcmp(node->value->ent.entry, key) != 0) {
                 node = node->next;
 
                 if (node == NULL)
@@ -144,7 +144,7 @@ Lambda *hashtable_delete(HashTable *table, const char *key)
 
         Node *prev = NULL;
 
-        while (strcmp(node->value->entry, key) != 0) {
+        while (strcmp(node->value->ent.entry, key) != 0) {
                 prev = node;
                 node = node->next;
 
@@ -211,8 +211,8 @@ void hashtable_print(HashTable *table)
         for (i = 0; i < entries_count; i++) {
                 printf(ANSI_BLUE "%-4ld " ANSI_RESET, i + 1);
                 
-                char *shortcut = array[i]->shortcut;
-                Lambda *term = array[i]->expression;
+                char *shortcut = array[i]->ent.entry;
+                Lambda *term = array[i]->ent.expression;
 
                 printf("%-8s " ANSI_GREEN, shortcut);
 
@@ -225,7 +225,7 @@ void hashtable_print(HashTable *table)
 
 void load_default_shortcuts(HashTable *table)
 {
-        const char *str_shortcuts[] = {
+        const char *str_entries[] = {
                 // Basic combinators
 
                 "S=\\x.\\y.\\z.xz(yz)",
@@ -294,30 +294,43 @@ void load_default_shortcuts(HashTable *table)
                        "pq(\\f.\\x.x))(pn)(fp((\\p.\\q.\\f.\\x.pf(qfx))n(\\f."
                        "\\x.fx))))p(\\f.\\x.x)",
 
-                // Data structures
+                // Pairs
 
                 "PAIR=\\x.\\y.\\f.fxy",
+                "NIL=\\x.(\\f.\\x.f)",
+
                 "FIRST=\\p.p(\\f.\\x.f)",
                 "SECOND=\\p.p(\\f.\\x.x)",
 
+                // Lists
+
+                "NIL=\\c.\\n.n",
+                "CONS=\\x.\\l.\\c.\\n.cx(lcn)",
+                "HEAD=\\l.l(\\f.\\x.f)(\\c.\\n.n)",
+                "TAIL=\\l.\\c.\\n.l(\\h.\\g.\\c.\\n.g(\\t.cht))(\\u.n)(\\u.u)",
+                "MAP=\\f.\\l.\\c.\\n.l(\\h.\\t.c(fh)t)n",
+
+                // Binary trees
+
                 "ROOT=\\x.\\l.\\r.\\f.\\x.fx(\\f.flr)",
                 "DATUM=\\n.n(\\f.\\x.f)",
-
-                "EMPTY=\\x.(\\f.\\x.f)",
-                "NULL=\\p.p(\\x.\\y.(\\f.\\x.x))",
 
                 "LEFT=\\n.n(\\f.\\x.x)(\\f.\\x.f)",
                 "RIGHT=\\n.n(\\f.\\x.x)(\\f.\\x.x)"
         };
 
-        const int length = sizeof(str_shortcuts) / sizeof(str_shortcuts[0]);
+        const int length = sizeof(str_entries) / sizeof(str_entries[0]);
 
         for (int i = 0; i < length; i++) {
-                Lambda *shortcut = lambda_parse(str_shortcuts[i]);
+                Lambda *entry = lambda_parse(str_entries[i]);
 
-                if (!hashtable_insert(table, shortcut)) {
-                        printf(ANSI_RED "Error at index %d: \"%s\".\n" ANSI_RESET, i, str_shortcuts[i]);
-                        lambda_free(shortcut);
+                // printf("Parsed \"");
+                // lambda_print(entry, NULL);
+                // printf("\"\n");
+
+                if (!hashtable_insert(table, entry)) {
+                        printf(ANSI_RED "Error at index %d: \"%s\".\n" ANSI_RESET, i, str_entries[i]);
+                        lambda_free(entry);
                 }
         }
 }
@@ -327,8 +340,8 @@ int compare_entries(const void *left, const void *right)
         Lambda *l_left = *(Lambda **)left;
         Lambda *l_right = *(Lambda **)right;
 
-        char *str_left = l_left->entry;
-        char *str_right = l_right->entry;
+        char *str_left = l_left->ent.entry;
+        char *str_right = l_right->ent.entry;
 
         return strcmp(str_left, str_right);
 }

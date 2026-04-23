@@ -82,6 +82,16 @@ Lambda *lambda_reduce(Lambda *lambda)
                 if (!rename)
                         beta_reduction(redex);
         }
+        /*
+
+        int numeral = lambda_is_numeral(lambda);
+
+        if (numeral != -1)
+                printf("%d", numeral);
+        else
+                lambda_print(lambda, NULL);
+        
+        */
 
         lambda_print(lambda, NULL);
 
@@ -106,12 +116,12 @@ void beta_reduction(Lambda *redex)
         if (stack == NULL)
                 return;
 
-        Lambda *left = redex->left;
-        Lambda *argument = redex->right;
+        Lambda *left = redex->app.left;
+        Lambda *argument = redex->app.right;
 
-        Lambda *body = left->body;
+        Lambda *body = left->abs.body;
 
-        struct Variable bound_var = left->variable;
+        struct Variable bound_var = left->abs.bind;
 
         free(left);
 
@@ -139,19 +149,19 @@ void beta_reduction(Lambda *redex)
                         break;
                         
                 case LAMBDA_ABSTRACTION:
-                        var = top->variable;
+                        struct Variable bind = top->abs.bind;
 
-                        if (variable_compare(var, bound_var))
+                        if (variable_compare(bind, bound_var))
                                 break;
 
-                        Lambda *body = top->body;
+                        Lambda *body = top->abs.body;
                         stack_push(stack, body);
 
                         break;
 
                 case LAMBDA_APPLICATION:
-                        Lambda *right = top->right;
-                        Lambda *left = top->left;
+                        Lambda *right = top->app.right;
+                        Lambda *left = top->app.left;
 
                         stack_push(stack, right);
                         stack_push(stack, left);
@@ -187,7 +197,7 @@ Lambda *get_redex(Lambda *lambda)
         while (top != NULL) {
                 switch (top->type) {
                 case LAMBDA_ENTRY:
-                        Lambda *entry = top->expression;
+                        Lambda *entry = top->ent.expression;
                         stack_push(stack, entry);
 
                         break;
@@ -199,7 +209,7 @@ Lambda *get_redex(Lambda *lambda)
                         break;
                         
                 case LAMBDA_ABSTRACTION:
-                        Lambda *body = top->body;
+                        Lambda *body = top->abs.body;
                         stack_push(stack, body);
 
                         break;
@@ -210,8 +220,8 @@ Lambda *get_redex(Lambda *lambda)
                                 return top;
                         }
 
-                        Lambda *right = top->right;
-                        Lambda *left = top->left;
+                        Lambda *right = top->app.right;
+                        Lambda *left = top->app.left;
 
                         stack_push(stack, right);
                         stack_push(stack, left);
@@ -236,7 +246,7 @@ void interrupt_handle(int signal)
 
         printf(
                 ANSI_RED
-                "\nKilled.\n"
+                "Killed.\n"
                 ANSI_RESET
         );
 }

@@ -52,12 +52,12 @@ void lambda_print(const Lambda *lambda, const Lambda *redex)
 
         while (top != NULL) {
                 if (redex != NULL) {
-                        if (top == redex->right) {
+                        if (top == redex->app.right) {
                                 stack_push(operator_stack, operator_table[OPERATOR_RESET]);
                                 printf(ANSI_GREEN);
                         }
 
-                        if (top == redex->left) {
+                        if (top == redex->app.left) {
                                 stack_push(operator_stack, operator_table[OPERATOR_RESET]);
                                 printf(ANSI_RED);
                         }
@@ -65,8 +65,8 @@ void lambda_print(const Lambda *lambda, const Lambda *redex)
 
                 switch (top->type) {
                 case LAMBDA_ENTRY:
-                        printf("%s", lambda->shortcut);
-                        stack_push(lambda_stack, top->expression);
+                        printf("%s", lambda->ent.entry);
+                        stack_push(lambda_stack, top->ent.expression);
                         stack_push(operator_stack, operator_table[OPERATOR_EQUALS]);
                         break;
 
@@ -83,20 +83,20 @@ void lambda_print(const Lambda *lambda, const Lambda *redex)
                         break;
                 
                 case LAMBDA_ABSTRACTION:
-                        struct Variable bind = top->bind;
+                        struct Variable bind = top->abs.bind;
                         
                         printf("%s", operator_table[OPERATOR_LAMBDA]);
 
                         variable_print(bind);
 
-                        stack_push(lambda_stack, top->body);
+                        stack_push(lambda_stack, top->abs.body);
                         stack_push(operator_stack, operator_table[OPERATOR_DOT]);
 
                         break;
 
                 case LAMBDA_APPLICATION:
-                        Lambda *left = top->left;
-                        Lambda *right = top->right;
+                        Lambda *left = top->app.left;
+                        Lambda *right = top->app.right;
 
                         stack_push(lambda_stack, right);
                         stack_push(lambda_stack, left);

@@ -23,7 +23,7 @@ bool replace_shortcuts(Lambda *lambda, HashTable *table)
         while (top != NULL) {
                 switch (top->type) {
                 case LAMBDA_ENTRY:
-                        stack_push(stack, top->expression);
+                        stack_push(stack, top->ent.expression);
                         break;
 
                 case LAMBDA_SHORTCUT:
@@ -41,7 +41,7 @@ bool replace_shortcuts(Lambda *lambda, HashTable *table)
                                 goto error;
                         }
 
-                        Lambda *duplicate = lambda_duplicate(entry->expression);
+                        Lambda *duplicate = lambda_duplicate(entry->ent.expression);
 
                         if (duplicate == NULL) {
                                 printf(ANSI_RED "Error. Duplication fail.\n" ANSI_RESET);
@@ -59,12 +59,12 @@ bool replace_shortcuts(Lambda *lambda, HashTable *table)
                         break;
 
                 case LAMBDA_ABSTRACTION:
-                        stack_push(stack, top->body);
+                        stack_push(stack, top->abs.body);
                         break;
 
                 case LAMBDA_APPLICATION:
-                        stack_push(stack, top->right);
-                        stack_push(stack, top->left);
+                        stack_push(stack, top->app.right);
+                        stack_push(stack, top->app.left);
 
                         break;
 
@@ -121,11 +121,9 @@ Lambda *generate_numeral(int integer)
                 return NULL;
 
         numeral->type = LAMBDA_ABSTRACTION;
-        numeral->variable = var_f;
+        numeral->abs.bind = var_f;
         
         Lambda *inner_abstraction = malloc(sizeof(*inner_abstraction));
-        
-        numeral->body = inner_abstraction;
 
         if (inner_abstraction == NULL) {
                 free(numeral);
@@ -133,7 +131,9 @@ Lambda *generate_numeral(int integer)
         }
 
         inner_abstraction->type = LAMBDA_ABSTRACTION;
-        inner_abstraction->variable = var_x;
+        inner_abstraction->abs.bind = var_x;
+
+        numeral->abs.body = inner_abstraction;
 
         Lambda *right;
 
@@ -141,7 +141,7 @@ Lambda *generate_numeral(int integer)
         if (integer == 0) {
                 right = malloc(sizeof(*right));
 
-                inner_abstraction->body = right;
+                inner_abstraction->abs.body = right;
 
                 if (right == NULL) {
                         lambda_free(numeral);
@@ -156,7 +156,7 @@ Lambda *generate_numeral(int integer)
 
         // Generate a chain of applications of the form \f.\x.f(f(...(fx)...))
         Lambda *outer_application = malloc(sizeof(*outer_application));
-        inner_abstraction->body = outer_application;
+        inner_abstraction->abs.body = outer_application;
 
         if (outer_application == NULL){
                 lambda_free(numeral);
@@ -171,8 +171,8 @@ Lambda *generate_numeral(int integer)
                 Lambda *left = malloc(sizeof(*left));
                 right = malloc(sizeof(*right));
 
-                application->left = left;
-                application->right = right;
+                application->app.left = left;
+                application->app.right = right;
 
                 if (left == NULL || right == NULL) {
                         lambda_free(numeral);
@@ -186,11 +186,11 @@ Lambda *generate_numeral(int integer)
                         right->type = LAMBDA_VARIABLE;
                         right->variable = var_x;
 
-                        application->left = left;
-                        application->right = right;
+                        application->app.left = left;
+                        application->app.right = right;
                 } else {
-                        application->left = left;
-                        application->right = right;
+                        application->app.left = left;
+                        application->app.right = right;
 
                         application = right;
                 }

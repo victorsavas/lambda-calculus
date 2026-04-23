@@ -1,8 +1,8 @@
 #include <ctype.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "parser.h"
@@ -25,7 +25,6 @@ struct Mode mode = {
 HashTable *table;
 
 static void interrupt_handle(int signal);
-static char *fgets_wrapper(char *buffer, size_t buf_size, FILE *file);  
 
 int main()
 {
@@ -39,7 +38,7 @@ int main()
 
                 printf("λ> ");
 
-                fgets_wrapper(buffer, BUF_LEN, stdin);
+                fgets(buffer, BUF_LEN, stdin);
                 
                 if (buffer[0] == ':') {
                         parse_command(buffer, table);
@@ -72,26 +71,6 @@ int main()
         hashtable_free(table);
 
         return 0;
-}
-
-char *fgets_wrapper(char *buffer, size_t buf_len, FILE *file)
-{
-        if (buffer == NULL || buf_len == 0 || file == NULL)
-                return NULL;
-
-        buffer = fgets(buffer, buf_len, file);
-
-        if (buffer == NULL)
-                return NULL;
-
-        char *p = buffer;
-
-        while (*p != '\0' && *p != '\r' && *p != '\n')
-                p++;
-
-        *p = '\0';
-
-        return buffer;
 }
 
 void interrupt_handle(int signal)

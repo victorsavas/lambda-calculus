@@ -8,43 +8,37 @@ typedef enum LambdaExprType {
         LAMBDA_APPLICATION,
         LAMBDA_SHORTCUT,
         LAMBDA_ENTRY,
-        LAMBDA_NUMERAL,
-        // LAMBDA_INDIRECTION
+        LAMBDA_NUMERAL
 } LambdaExprType;
 
 typedef struct Lambda Lambda;
 
 struct Lambda {
-        int instances;
-
-        LambdaExprType type;
-
         union {
                 struct Variable variable;
 
                 struct {
-                        struct Variable bind;
                         Lambda *body;
-                };      // abstraction
+                        struct Variable bind;
+                } abs;
 
                 struct {
                         Lambda *left;
                         Lambda *right;
-                };      // application
+                } app;
 
                 char *shortcut;
 
                 struct {
-                        char *entry;
                         Lambda *expression;
-                };      // entry
+                        char *entry;
+                } ent;
 
                 int numeral;
-
-                // struct {
-                //         Lambda *indirection;
-                // };      // indirection
         };
+
+        LambdaExprType type;
 };
 
 void lambda_free(Lambda *lambda);
+int lambda_is_numeral(Lambda *lambda);

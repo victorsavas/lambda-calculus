@@ -17,7 +17,7 @@ bool alpha_rename(Lambda *redex)
         if (!is_redex(redex))
                 return NULL;
 
-        Lambda *right = redex->right;
+        Lambda *right = redex->app.right;
 
         Stack *right_fv = get_free_variables(right);
 
@@ -51,16 +51,9 @@ bool capture_check(Lambda *redex, Stack *right_fv)
         }
 
         bool rename = false;
-        Lambda *top = redex->left;
+        Lambda *top = redex->app.left;
 
         while (top != NULL) {
-                if (top->type == LAMBDA_APPLICATION) {
-                        stack_push(stack, top->right);
-                        top = top->left;
-
-                        continue;
-                }
-
                 size_t h = stack_height(stack);
                 size_t *pop_h = (size_t *)stack_peek(height);
 
@@ -72,7 +65,7 @@ bool capture_check(Lambda *redex, Stack *right_fv)
 
                 switch (top->type) {
                 case LAMBDA_ENTRY:
-                        stack_push(stack, top->expression);
+                        stack_push(stack, top->ent.expression);
                         break;
 
                 case LAMBDA_SHORTCUT:
@@ -82,7 +75,7 @@ bool capture_check(Lambda *redex, Stack *right_fv)
                         break;
 
                 case LAMBDA_ABSTRACTION:
-                        struct Variable *bind = &top->bind;
+                        struct Variable *bind = &top->abs.bind;
                         
                         bool capture = stack_search(right_fv, bind, variable_search);
 
@@ -91,11 +84,15 @@ bool capture_check(Lambda *redex, Stack *right_fv)
                                 rename = true;
                         }
 
-                        stack_push(stack, top->body);
+                        stack_push(stack, top->abs.body);
                         push_height(height, h);
                         stack_push(binds, bind);
 
                         break;
+                
+                case LAMBDA_APPLICATION:
+                        stack_push(stack, top->app.right);
+                        stack_push(stack, top->app.left);
                         
                 case LAMBDA_NUMERAL:
                         break;
@@ -124,8 +121,8 @@ void rename_abstraction(Lambda *abst, Stack *right_fv, Stack *binds)
          || abst->type != LAMBDA_ABSTRACTION)
                 return;
 
-        struct Variable *old_bind = &abst->bind;
-        Lambda *body = abst->body;
+        struct Variable *old_bind = &abst->abs.bind;
+        Lambda *body = abst->abs.body;
 
         Stack *stack = stack_init();
         Stack *inner_binds = get_inner_binds(abst);
@@ -155,16 +152,9 @@ void rename_abstraction(Lambda *abst, Stack *right_fv, Stack *binds)
                 return;
         }
 
-        Lambda *top = abst->body;
+        Lambda *top = abst->abs.body;
 
         while (top != NULL) {
-                if (top->type == LAMBDA_APPLICATION) {
-                        stack_push(stack, top->right);
-                        top = top->left;
-
-                        continue;
-                }
-
                 switch (top->type) {
                 case LAMBDA_ENTRY:
                         // illegal
@@ -180,8 +170,14 @@ void rename_abstraction(Lambda *abst, Stack *right_fv, Stack *binds)
                         break;
 
                 case LAMBDA_ABSTRACTION:
-                        if (!variable_compare(top->variable, *old_bind))
-                                stack_push(stack, top->body);
+                        if (!variable_compare(top->abs.bind, *old_bind))
+                                stack_push(stack, top->abs.body);
+
+                        break;
+
+                case LAMBDA_APPLICATION:
+                        stack_push(stack, top->app.right);
+                        stack_push(stack, top->app.left);
 
                         break;
 
@@ -192,7 +188,7 @@ void rename_abstraction(Lambda *abst, Stack *right_fv, Stack *binds)
                 top = (Lambda *)stack_pop(stack);
         }
 
-        abst->bind = new_bind;
+        abst->abs.bind = new_bind;
 
         stack_free(stack);
 }
@@ -203,21 +199,14 @@ Stack *get_inner_binds(Lambda *abst)
          || abst->type != LAMBDA_ABSTRACTION)
                 return NULL;
 
-        struct Variable old_bind = abst->variable;
+        struct Variable old_bind = abst->abs.bind;
 
         Stack *stack = stack_init();
         Stack *inner_binds = stack_init();
 
-        Lambda *top = abst->body;
+        Lambda *top = abst->abs.body;
 
         while (top != NULL) {
-                if (top->type == LAMBDA_APPLICATION) {
-                        stack_push(stack, top->right);
-                        top = top->left;
-
-                        continue;
-                }
-
                 switch (top->type) {
                 case LAMBDA_ENTRY:
                         // illegal
@@ -236,12 +225,20 @@ Stack *get_inner_binds(Lambda *abst)
                         break;
 
                 case LAMBDA_ABSTRACTION:
-                        struct Variable *bind = &top->bind;
+                        struct Variable *bind = &top->abs.bind;
 
                         if (!variable_compare(old_bind, *bind)
                          && !stack_search(inner_binds, bind, variable_search))
                                 stack_push(inner_binds, bind);
 
+                        stack_push(stack, top->abs.body);
+
+                        break;
+
+                case LAMBDA_APPLICATION:
+                        stack_push(stack, top->app.right);
+                        stack_push(stack, top->app.left);
+                        
                         break;
 
                 case LAMBDA_NUMERAL:
@@ -293,7 +290,7 @@ Stack *get_free_variables(Lambda *lambda)
 
                 switch (top->type) {
                 case LAMBDA_ENTRY:
-                        stack_push(stack, top->expression);
+                        stack_push(stack, top->ent.expression);
                         break;
 
                 case LAMBDA_SHORTCUT:
@@ -311,9 +308,9 @@ Stack *get_free_variables(Lambda *lambda)
                         break;
 
                 case LAMBDA_ABSTRACTION:
-                        struct Variable *bind = &top->bind;
+                        struct Variable *bind = &top->abs.bind;
 
-                        stack_push(stack, top->body);
+                        stack_push(stack, top->abs.body);
 
                         stack_push(binds, bind);
                         push_height(height, h);
@@ -321,8 +318,8 @@ Stack *get_free_variables(Lambda *lambda)
                         break;
 
                 case LAMBDA_APPLICATION:
-                        stack_push(stack, top->right);
-                        top = top->left;
+                        stack_push(stack, top->app.right);
+                        stack_push(stack, top->app.left);
                         
                         break;
 
@@ -368,7 +365,7 @@ bool is_redex(Lambda *lambda)
         if (lambda->type != LAMBDA_APPLICATION)
                 return false;
 
-        Lambda *left = lambda->left;
+        Lambda *left = lambda->app.left;
 
         if (left == NULL)
                 return false;

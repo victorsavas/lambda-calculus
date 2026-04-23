@@ -197,8 +197,8 @@ Lambda *parse_application(struct ParseParam param)
                 }
 
                 application->type = LAMBDA_APPLICATION;
-                application->left = left;
-                application->right = right;
+                application->app.left = left;
+                application->app.right = right;
 
                 left = application;
 
@@ -224,7 +224,7 @@ Lambda *parse_abstraction(struct ParseParam param)
                 return NULL;
 
         abstraction->type = LAMBDA_ABSTRACTION;
-        abstraction->bind = bind;
+        abstraction->abs.bind = bind;
 
         get_token(param.token, param.str);
 
@@ -243,7 +243,7 @@ Lambda *parse_abstraction(struct ParseParam param)
                 return NULL;
         }
 
-        abstraction->body = body;
+        abstraction->abs.body = body;
 
         return abstraction;
 }
@@ -284,8 +284,7 @@ struct Variable parse_variable(struct ParseParam param)
         // Parse subscript
         get_token(param.token, param.str);
 
-        int integer = atoi(*param.str);
-        variable.subscript = integer;
+        variable.subscript = param.token->integer;
 
         return variable;
 }
@@ -311,11 +310,11 @@ Lambda *parse_entry(Lambda *left, struct ParseParam param)
                 return NULL;
         }
 
-        char *entry = left->entry;
+        char *entry = left->shortcut;
 
         left->type = LAMBDA_ENTRY;
-        left->entry = entry;
-        left->expression = right;
+        left->ent.entry = entry;
+        left->ent.expression = right;
 
         return left;
 }
